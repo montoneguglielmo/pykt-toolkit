@@ -204,8 +204,18 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
         print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
         auc = metrics.roc_auc_score(y_true=ts, y_score=ps)
 
-        prelabels = [1 if p >= 0.5 else 0 for p in ps]
+        #prelabels = [1 if p >= 0.5 else 0 for p in ps]
+        prelabels = (ps >= 0.5).astype(int)
         acc = metrics.accuracy_score(ts, prelabels)
+
+        # Per-class accuracy, as in the MIAAM paper (Table 3)
+        pos = ts == 1   # student succeeded
+        neg = ts == 0   # student failed
+        acc1 = (prelabels[pos] == 1).mean() if pos.any() else float("nan")
+        acc0 = (prelabels[neg] == 0).mean() if neg.any() else float("nan")
+        print(f"acc1 (successes): {acc1:.4f}, acc0 (failures): {acc0:.4f}, "
+              f"n1: {pos.sum()}, n0: {neg.sum()}")
+
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
     return auc, acc
